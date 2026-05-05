@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Clients — BankApp</title>
+    <!-- Bootstrap 5 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css"/>
+</head>
+<body class="bg-light">
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
+    <a class="navbar-brand fw-bold" href="/"><i class="bi bi-bank2 me-2"></i>BankApp</a>
+    <div class="navbar-nav ms-auto">
+        <a class="nav-link active" th:href="@{/clients}"><i class="bi bi-people-fill me-1"></i>Clients</a>
+        <a class="nav-link" th:href="@{/comptes}"><i class="bi bi-credit-card me-1"></i>Comptes</a>
+    </div>
+</nav>
+
+<div class="container py-5">
+    <h2 class="mb-4 fw-bold"><i class="bi bi-people me-2 text-primary"></i>Gestion des Clients</h2>
+
+    <!-- Add / Edit Form -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold"
+             th:text="${editing} != null ? '✏️ Modifier le client' : '➕ Ajouter un client'">
+            Ajouter un client
+        </div>
+        <div class="card-body">
+            <form th:action="${editing} != null ? @{/clients/update} : @{/clients/save}" method="post">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label for="cin" class="form-label fw-semibold">CIN</label>
+                        <input type="text" id="cin" name="cin" class="form-control"
+                               th:value="${editing != null ? editing.cin() : ''}"
+                               th:readonly="${editing != null}"
+                               placeholder="Ex: 12345678" required/>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="nom" class="form-label fw-semibold">Nom</label>
+                        <input type="text" id="nom" name="nom" class="form-control"
+                               th:value="${editing != null ? editing.nom() : ''}"
+                               placeholder="Nom de famille" required/>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="prenom" class="form-label fw-semibold">Prénom</label>
+                        <input type="text" id="prenom" name="prenom" class="form-control"
+                               th:value="${editing != null ? editing.prenom() : ''}"
+                               placeholder="Prénom" required/>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn w-100"
+                                th:classappend="${editing} != null ? 'btn-success' : 'btn-primary'"
+                                th:text="${editing} != null ? '✔ Mettre à jour' : '+ Ajouter'">
+                            + Ajouter
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white fw-semibold">
+            <i class="bi bi-table me-1"></i> Liste des clients
+        </div>
+        <div class="card-body p-0">
+            <div th:if="${clients.empty}" class="text-center text-muted py-5">
+                <i class="bi bi-inbox fs-2 d-block mb-2"></i>Aucun client enregistré.
+            </div>
+            <div th:unless="${clients.empty}" class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                    <tr>
+                        <th>CIN</th>
+                        <th>Nom</th>
+                        <th>Prénom</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="c : ${clients}" th:id="${c.cin}">
+                        <td><span class="badge bg-secondary" th:text="${c.cin}"></span></td>
+                        <td th:text="${c.nom}"></td>
+                        <td th:text="${c.prenom}"></td>
+                        <td class="text-center">
+                            <a th:href="@{/clients/edit/{cin}(cin=${c.cin})}"
+                               class="btn btn-sm btn-outline-primary me-1">
+                                <i class="bi bi-pencil-fill"></i> Modifier
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-client"
+                                    th:data-cin="${c.cin}">
+                                <i class="bi bi-trash-fill"></i> Supprimer
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    $(document).on("click", ".btn-delete-client", function () {
+        const cin = $(this).data("cin");
+
+        Swal.fire({
+            title: "Confirmer la suppression",
+            text: "Voulez-vous vraiment supprimer ce client ?",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#6c757d",
+            confirmButtonText: "Oui, supprimer",
+            cancelButtonText: "Annuler"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: "/clients/delete",
+                    type: "POST",
+                    data: { cin: cin },
+                    success: function () {
+                        $("#" + cin).remove();
+                        Swal.fire({
+                            title: "Supprimé !",
+                            text: "Le client a été supprimé avec succès.",
+                            icon: "success",
+                            timer: 1800,
+                            showConfirmButton: false
+                        });
+                    },
+                    error: function () {
+                        Swal.fire("Erreur", "Une erreur serveur s'est produite.", "error");
+                    }
+                });
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
