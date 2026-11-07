@@ -1,0 +1,25 @@
+# STARTER compose. M1 todo: MySQL healthcheck + depends_on condition: service_healthy.
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: belguithbank
+      MYSQL_USER: belguith
+      MYSQL_PASSWORD: ${DB_PASSWORD:-changeme}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootchangeme}
+    volumes:
+      - mysqldata:/var/lib/mysql
+  app:
+    build: .
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/belguithbank?serverTimezone=UTC
+      DB_USERNAME: belguith
+      DB_PASSWORD: ${DB_PASSWORD:-changeme}
+    ports:
+      - "8080:8080"
+      - "8081:8081"   # actuator: published for local checks only, never expose via ingress
+    depends_on:
+      - mysql
+    restart: on-failure   # crude stand-in for a healthcheck-gated start
+volumes:
+  mysqldata:
